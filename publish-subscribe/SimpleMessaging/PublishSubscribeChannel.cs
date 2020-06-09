@@ -44,15 +44,19 @@ namespace SimpleMessaging
             factory.AutomaticRecoveryEnabled = true;
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
-            
+
             // TODO: On the channel declare a non-durable fanout exchange 
+            _channel.ExchangeDeclare(ExchangeName, ExchangeType.Fanout, durable: false);
             if (channelType == ChannelType.Subscriber)
             {
                 //make the queue exclusive and autoDelete as it exists only for this subscriber; a publisher does not 
                 //create as we would not use the queue so created for that client, hence the flag in the constructor
                 //TODO: declare a queue but don't pass a queuename
+                var result = _channel.QueueDeclare("", false, false, false);
                 //TODO: Grab the randonly genereated queue name from the resut of the queue creation operation
+                _queueName = result.QueueName;
                 //TODO: Bind the queue name to the exchange with the ALL (empty string above) routing key
+                _channel.QueueBind(_queueName, ExchangeName, "");
             }
         }
 
@@ -68,6 +72,7 @@ namespace SimpleMessaging
             
             var body = Encoding.UTF8.GetBytes(message);
             //TODO: Publish to the exchange, using the ALL routingkey
+            _channel.BasicPublish(ExchangeName, "", null, body);
         }
 
         /// <summary>

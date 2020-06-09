@@ -32,7 +32,7 @@ namespace SimpleMessaging
         {
             _messageSerializer = messageSerializer;
             //just use defaults: usr: guest pwd: guest port:5672 virtual host: /
-            var factory = new ConnectionFactory() { HostName = hostName };
+            var factory = new ConnectionFactory() { HostName = hostName, Port = 5672, UserName = "guest", Password = "guest" };
             factory.AutomaticRecoveryEnabled = true;
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
@@ -54,7 +54,8 @@ namespace SimpleMessaging
         /// <param name="message"></param>
         public void Send(T message)
         {
-            //TODO: Serialize the message Tip, convert to UTF8
+            // Serialize the message Tip, convert to UTF8
+            var body = Encoding.UTF8.GetBytes(_messageSerializer(message));
             _channel.BasicPublish(exchange: ExchangeName, routingKey: _routingKey, basicProperties: null, body: body);
         }
 

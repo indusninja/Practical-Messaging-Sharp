@@ -5,7 +5,7 @@ using RabbitMQ.Client;
 
 namespace SimpleMessaging
 {
-    public class BadDataTypeChannelProducer<TActual, TIntended> : IDisposable where TActual: IAmAMessage where TIntended: IAmAMessage
+    public class BadDataTypeChannelProducer<TActual, TIntended> : IDisposable where TActual : IAmAMessage where TIntended : IAmAMessage
     {
         private readonly Func<TActual, string> _messageSerializer;
         private readonly string _routingKey;
@@ -38,29 +38,36 @@ namespace SimpleMessaging
             factory.AutomaticRecoveryEnabled = true;
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
-            
-             /* We choose to base the key off the type name, because we want tp publish to folks interested in this type
-              We name the queue after that routing key as we are point-to-point and only expect one queue to receive
-             this type of message */
+
+            /* We choose to base the key off the type name, because we want tp publish to folks interested in this type
+             We name the queue after that routing key as we are point-to-point and only expect one queue to receive
+            this type of message */
             _routingKey = "Invalid-Message-Channel." + typeof(TIntended).FullName;
-            var queueName = _routingKey;
+            var _queueName = _routingKey;
 
             var invalidRoutingKey = "invalid." + _routingKey;
             var invalidMessageQueueName = invalidRoutingKey;
-            
+
             _channel.ExchangeDeclare(ExchangeName, ExchangeType.Direct, durable: false);
-            
-            //TODO create an argument dictionary, that has arguments for the invalid message exchange and routing key
-           
-            //TODO: Create our consumer queue, but add the arguments that hook up the invalid message queue (tip might be calle deal letter in RMQ docs)
-            _channel.QueueBind(queue:queueName, exchange: ExchangeName, routingKey: _routingKey);
-            
-            //declare a queue for invalid messages off an invalid message exchange
-            //messages that we nack without requeue will go here
-            // TODO; Declare an invalid message queue exchange, direct and durable
-            // TODO: declare an invalid message queue, durable
-            // TODO: bind the queue to the exchange
-    }
+            // create an argument dictionary, that has arguments for the invalid message exchange and routing key
+            var arguments = new Dictionary<string, object>()
+            {
+                { "x-dead-letter-exchange", InvalidMessageExchangeName},
+                { "x-dead-letter-routing-key", invalidRoutingKey}
+            };
+            // Create our consumer queue, but add the arguments that hook up the invalid message queue (tip: might be called dead letter in RMQ docs)
+            _channel.QueueDeclare(_queueName, false, false, false, arguments);
+            _channel.QueueBind(queue: _queueName, exchange: ExchangeName, routingKey: _routingKey);
+
+            // declare a queue for invalid messages off an invalid message exchange
+            // messages that we nack without requeue will go here
+            // Declare an invalid message queue exchange, direct and durable
+            _channel.ExchangeDeclare(InvalidMessageExchangeName, ExchangeType.Direct, true);
+            // declare an invalid message queue, durable
+            _channel.QueueDeclare(invalidMessageQueueName, true, false, false);
+            // bind the queue to the exchange
+            _channel.QueueBind(invalidMessageQueueName, InvalidMessageExchangeName, invalidRoutingKey);
+        }
 
         /// <summary>
         /// Send a message over the channel

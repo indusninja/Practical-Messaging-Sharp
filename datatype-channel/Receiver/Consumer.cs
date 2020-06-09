@@ -9,11 +9,11 @@ namespace Sender
     {
         static void Main(string[] args)
         {
-            using (var channel = new DataTypeChannelConsumer<Greeting>(messageBody =>/*TODO: deserialize the message*/))
+            using (var channel = new DataTypeChannelConsumer<Greeting>(messageBody => JsonConvert.DeserializeObject<Greeting>(messageBody)))
             {
                 var greeting = channel.Receive();
                 if (greeting != null)
-                    Console.WriteLine("Received message {0}", greeting.Salutation);
+                    Console.WriteLine("Received message {0} @ {1}", greeting.Salutation, greeting.SendTime);
                 else
                    Console.WriteLine("Did not receive message"); 
             }

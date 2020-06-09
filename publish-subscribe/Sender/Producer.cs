@@ -9,7 +9,9 @@ namespace Sender
         {
             using (var channel = new PublishSubscribeChannel(ChannelType.Publisher))
             {
-                string message = "Hello World!";
+                var rand = new Random();
+                var id = rand.Next(0, 100);
+                string message = "Hello World! from " + id;
                 channel.Send(message);
                 Console.WriteLine("Sent message {0}", message);
             }

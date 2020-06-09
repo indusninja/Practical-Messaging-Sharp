@@ -30,7 +30,7 @@ namespace SimpleMessaging
         {
             _messageDeserializer = messageDeserializer;
             //just use defaults: usr: guest pwd: guest port:5672 virtual host: /
-            var factory = new ConnectionFactory() { HostName = hostName };
+            var factory = new ConnectionFactory() { HostName = hostName, Port = 5672, UserName = "guest", Password = "guest" };
             factory.AutomaticRecoveryEnabled = true;
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
@@ -56,7 +56,8 @@ namespace SimpleMessaging
         {
             var result = _channel.BasicGet(_queueName, autoAck: true);
             if (result != null)
-                //TODO: deserialize the message
+                // deserialize the message
+                return _messageDeserializer(Encoding.UTF8.GetString(result.Body));
             else
                 return default(T) ;
         }   
